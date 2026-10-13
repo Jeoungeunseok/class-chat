@@ -17,6 +17,7 @@ import {
   Sparkles,
   ArrowLeft,
   CheckCircle2,
+  Download,
 } from 'lucide-react';
 import { QRCodeDisplay } from '@/components/QRCodeDisplay';
 import { useRealtimeChat } from '@/hooks/useRealtimeChat';
@@ -119,6 +120,53 @@ export default function AdminPage() {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const handleDownloadChatLog = () => {
+    if (!session || messages.length === 0) {
+      alert('다운로드할 채팅 내역이 없습니다.');
+      return;
+    }
+
+    const title = session.title || '수업_채팅기록';
+    let text = `========================================\n`;
+    text += `수업명: ${title}\n`;
+    text += `일시: ${new Date().toLocaleString()}\n`;
+    text += `총 메시지 수: ${messages.length}개\n`;
+    text += `========================================\n\n`;
+
+    messages.forEach((m) => {
+      const time = new Date(m.createdAt).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+      text += `[${time}] ${m.senderName}: ${m.content}\n`;
+    });
+
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title.replace(/[\s/\\:*?"<>|]/g, '_')}_채팅기록_${Date.now()}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleEndSessionWithConfirm = () => {
+    if (messages.length > 0) {
+      const wantDownload = confirm(
+        '수업을 종료하면 DB의 모든 채팅 내역이 완전히 영구 삭제됩니다.\n\n종료하기 전에 채팅 내역을 텍스트 파일로 다운로드하시겠습니까?'
+      );
+      if (wantDownload) {
+        handleDownloadChatLog();
+      }
+    } else {
+      if (!confirm('수업을 종료하시겠습니까? 학생들의 채팅방이 즉시 잠깁니다.')) {
+        return;
+      }
+    }
+    handleAdminAction('close');
   };
 
   const handleSendTeacherMessage = async (e: React.FormEvent) => {
@@ -312,29 +360,20 @@ export default function AdminPage() {
                   </button>
 
                   <button
-                    disabled={actionLoading}
-                    onClick={() => {
-                      if (confirm('채팅 기록을 모두 비우시겠습니까?')) {
-                        handleAdminAction('clear_messages');
-                      }
-                    }}
+                    onClick={handleDownloadChatLog}
                     className="py-3 px-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition"
                   >
-                    <Trash2 className="w-4 h-4 text-slate-400" />
-                    <span>채팅 내역 비우기</span>
+                    <Download className="w-4 h-4 text-indigo-600" />
+                    <span>채팅 내역 다운로드 (.txt)</span>
                   </button>
 
                   <button
                     disabled={actionLoading}
-                    onClick={() => {
-                      if (confirm('수업을 종료하시겠습니까? 학생들의 채팅방이 즉시 잠깁니다.')) {
-                        handleAdminAction('close');
-                      }
-                    }}
+                    onClick={handleEndSessionWithConfirm}
                     className="py-3 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-sm shadow-rose-100"
                   >
                     <Square className="w-4 h-4" />
-                    <span>수업 종료 (방 닫기)</span>
+                    <span>수업 종료 (DB 영구삭제)</span>
                   </button>
                 </div>
               </div>

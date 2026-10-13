@@ -97,8 +97,15 @@ export async function endSession(): Promise<Session | null> {
         .select()
         .maybeSingle();
 
+      if (data?.id) {
+        // 수업 종료 시 해당 세션의 DB 메시지 완전 영구 삭제 (완전 휘발성)
+        await purgeMessages(data.id);
+      }
+
       if (error || !data) {
-        return memoryStore.closeSession();
+        const closed = memoryStore.closeSession();
+        if (closed) memoryStore.clearMessages(closed.id);
+        return closed;
       }
 
       return {
@@ -111,11 +118,15 @@ export async function endSession(): Promise<Session | null> {
         closedAt: data.closed_at,
       };
     } catch {
-      return memoryStore.closeSession();
+      const closed = memoryStore.closeSession();
+      if (closed) memoryStore.clearMessages(closed.id);
+      return closed;
     }
   }
 
-  return memoryStore.closeSession();
+  const closed = memoryStore.closeSession();
+  if (closed) memoryStore.clearMessages(closed.id);
+  return closed;
 }
 
 export async function setChatMute(muted?: boolean): Promise<Session | null> {
