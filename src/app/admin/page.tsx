@@ -49,14 +49,25 @@ export default function AdminPage() {
     }
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'admin1234') {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('admin_password', password);
-      setAuthError('');
-    } else {
-      setAuthError('비밀번호가 올바르지 않습니다. (기본: admin1234)');
+    setAuthError('');
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsAuthenticated(true);
+        sessionStorage.setItem('admin_password', password);
+        setAuthError('');
+      } else {
+        setAuthError(data.error || '비밀번호가 일치하지 않습니다.');
+      }
+    } catch {
+      setAuthError('로그인 처리 중 오류가 발생했습니다.');
     }
   };
 
@@ -151,7 +162,7 @@ export default function AdminPage() {
             <div>
               <input
                 type="password"
-                placeholder="비밀번호 (기본: admin1234)"
+                placeholder="관리자 비밀번호를 입력하세요"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"

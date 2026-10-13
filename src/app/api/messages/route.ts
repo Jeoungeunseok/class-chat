@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  getCurrentSession,
-  getMessages,
-  addMessage,
-  deleteMessage,
-} from '@/lib/memoryStore';
+  fetchCurrentSession,
+  fetchMessages,
+  postMessage,
+  removeMessage,
+} from '@/lib/dataService';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin1234';
 
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'sessionId가 필요합니다.' }, { status: 400 });
   }
 
-  const messages = getMessages(sessionId);
+  const messages = await fetchMessages(sessionId);
   return NextResponse.json({ messages });
 }
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '필수 항목이 누락되었습니다.' }, { status: 400 });
     }
 
-    const session = getCurrentSession();
+    const session = await fetchCurrentSession();
 
     // 세션 유효성 검사
     if (!session || session.id !== sessionId) {
@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 메시지 글자 수 제한 (도배/부하 방지)
+    // 메시지 글자 수 제한
     const sanitizedContent = content.trim().slice(0, 500);
 
-    const message = addMessage(
+    const message = await postMessage(
       sessionId,
       senderName.slice(0, 20),
       sanitizedContent,
@@ -86,7 +86,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const success = deleteMessage(messageId);
+    const success = await removeMessage(messageId);
     if (!success) {
       return NextResponse.json({ error: '메시지를 찾을 수 없습니다.' }, { status: 404 });
     }

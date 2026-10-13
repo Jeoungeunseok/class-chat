@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  getCurrentSession,
-  createSession,
-  closeSession,
-  toggleMute,
-  clearMessages,
-} from '@/lib/memoryStore';
+  fetchCurrentSession,
+  startNewSession,
+  endSession,
+  setChatMute,
+  purgeMessages,
+} from '@/lib/dataService';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin1234';
 
 export async function GET() {
-  const session = getCurrentSession();
+  const session = await fetchCurrentSession();
   return NextResponse.json({
     session,
     isSupabaseConfigured,
@@ -30,26 +30,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let session = getCurrentSession();
-
     if (action === 'create') {
-      session = createSession(title || '오늘의 실시간 수업');
+      const session = await startNewSession(title || '오늘의 실시간 수업');
       return NextResponse.json({ success: true, session });
     }
 
     if (action === 'close') {
-      session = closeSession();
+      const session = await endSession();
       return NextResponse.json({ success: true, session });
     }
 
     if (action === 'toggle_mute') {
-      session = toggleMute(muted);
+      const session = await setChatMute(muted);
       return NextResponse.json({ success: true, session });
     }
 
     if (action === 'clear_messages') {
-      if (session) {
-        clearMessages(session.id);
+      const current = await fetchCurrentSession();
+      if (current) {
+        await purgeMessages(current.id);
       }
       return NextResponse.json({ success: true, message: '채팅 기록이 초기화되었습니다.' });
     }
