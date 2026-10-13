@@ -1,0 +1,99 @@
+import { NextRequest, NextResponse } from 'next/server';
+import {
+  getCurrentSession,
+  getMessages,
+  addMessage,
+  deleteMessage,
+} from '@/lib/memoryStore';
+
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin1234';
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const sessionId = searchParams.get('sessionId');
+
+  if (!sessionId) {
+    return NextResponse.json({ error: 'sessionId가 필요합니다.' }, { status: 400 });
+  }
+
+  const messages = getMessages(sessionId);
+  return NextResponse.json({ messages });
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { sessionId, senderName, content, isTeacher, password } = body;
+
+    if (!sessionId || !senderName || !content?.trim()) {
+      return NextResponse.json({ error: '필수 항목이 누락되었습니다.' }, { status: 400 });
+    }
+
+    const session = getCurrentSession();
+
+    // 세션 유효성 검사
+    if (!session || session.id !== sessionId) {
+      return NextResponse.json(
+        { error: '존재하지 않거나 만료된 세션입니다.' },
+        { status: 404 }
+      );
+    }
+
+    if (!session.isActive) {
+      return NextResponse.json(
+        { error: '수업이 종료되어 메시지를 보낼 수 없습니다.' },
+        { status: 403 }
+      );
+    }
+
+    // 관리자(강사) 검증
+    const isVerifiedTeacher = isTeacher && password === ADMIN_PASSWORD;
+
+    // 채팅 음소거 상태 검사 (강사는 예외)
+    if (session.isChatMuted && !isVerifiedTeacher) {
+      return NextResponse.json(
+        { error: '현재 강사님이 채팅을 일시 정지(음소거)했습니다.' },
+        { status: 403 }
+      );
+    }
+
+    // 메시지 글자 수 제한 (도배/부하 방지)
+    const sanitizedContent = content.trim().slice(0, 500);
+
+    const message = addMessage(
+      sessionId,
+      senderName.slice(0, 20),
+      sanitizedContent,
+      isVerifiedTeacher
+    );
+
+    return NextResponse.json({ success: true, message });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : '서버 오류';
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { messageId, password } = body;
+
+    if (password !== ADMIN_PASSWORD) {
+      return NextResponse.json(
+        { error: '관리자 권한이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
+    const success = deleteMessage(messageId);
+    if (!success) {
+      return NextResponse.json({ error: '메시지를 찾을 수 없습니다.' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : '서버 오류';
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
+  }
+}
