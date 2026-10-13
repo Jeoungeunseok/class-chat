@@ -224,234 +224,222 @@ export default function AdminPage() {
           </div>
         </header>
 
-        {/* 세션 제어 및 대형 모니터링 보드 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 1. 좌측/메인: 대형 실시간 질문 모니터링 보드 (2컬럼 차지) */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* 세션 컨트롤 바 */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-indigo-600" />
-                  <h2 className="font-bold text-slate-800 text-sm">현재 수업 제어</h2>
-                </div>
-                {session?.isActive ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                    수업 진행 중 (참여 가능)
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
-                    수업 대기/종료 상태
-                  </span>
-                )}
+        {/* 세션 제어 및 전체 화면 모니터링 보드 */}
+        <div className="space-y-6">
+          {/* 세션 컨트롤 바 */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-600" />
+                <h2 className="font-bold text-slate-800 text-sm">현재 수업 제어</h2>
               </div>
-
               {session?.isActive ? (
-                <div className="mt-4 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  수업 진행 중 (참여 가능)
+                </span>
+              ) : (
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                  수업 대기/종료 상태
+                </span>
+              )}
+            </div>
+
+            {session?.isActive ? (
+              <div className="mt-4 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <div>
                       <h3 className="font-bold text-slate-900 text-base">{session.title}</h3>
                       <p className="text-xs text-slate-500 mt-0.5">
                         개설 시각: {new Date(session.createdAt).toLocaleTimeString()}
                       </p>
                     </div>
-                    <button
-                      onClick={() => setShowProjectorModal(true)}
-                      className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition shadow-sm shadow-indigo-100"
-                    >
-                      <Tv className="w-4 h-4" />
-                      <span>빔프로젝터 QR 크게 띄우기</span>
-                    </button>
+                    <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-lg text-xs font-bold text-indigo-700">
+                      <span>참여 PIN:</span>
+                      <span className="tracking-widest font-mono text-sm">{session.pinCode}</span>
+                    </div>
                   </div>
-
-                  {/* 컨트롤 버튼 그룹 */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <button
-                      disabled={actionLoading}
-                      onClick={() => handleAdminAction('toggle_mute')}
-                      className={`py-3 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border transition ${
-                        session.isChatMuted
-                          ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
-                          : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      {session.isChatMuted ? (
-                        <>
-                          <VolumeX className="w-4 h-4" />
-                          <span>채팅 얼리기 (음소거 중)</span>
-                        </>
-                      ) : (
-                        <>
-                          <Volume2 className="w-4 h-4 text-emerald-600" />
-                          <span>채팅 활성화 상태</span>
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      disabled={actionLoading}
-                      onClick={() => {
-                        if (confirm('채팅 기록을 모두 비우시겠습니까?')) {
-                          handleAdminAction('clear_messages');
-                        }
-                      }}
-                      className="py-3 px-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition"
-                    >
-                      <Trash2 className="w-4 h-4 text-slate-400" />
-                      <span>채팅 내역 비우기</span>
-                    </button>
-
-                    <button
-                      disabled={actionLoading}
-                      onClick={() => {
-                        if (confirm('수업을 종료하시겠습니까? 학생들의 채팅방이 즉시 잠깁니다.')) {
-                          handleAdminAction('close');
-                        }
-                      }}
-                      className="py-3 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-sm shadow-rose-100"
-                    >
-                      <Square className="w-4 h-4" />
-                      <span>수업 종료 (방 닫기)</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setShowProjectorModal(true)}
+                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition shadow-sm shadow-indigo-100"
+                  >
+                    <Tv className="w-4 h-4" />
+                    <span>QR 크게 띄우기</span>
+                  </button>
                 </div>
-              ) : (
-                <div className="mt-4 space-y-4">
-                  <p className="text-xs text-slate-600">
-                    수업을 시작하면 새로운 6자리 PIN과 일회성 참여 QR 코드가 발급됩니다.
-                  </p>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      수업 주제 / 강의명
-                    </label>
-                    <input
-                      type="text"
-                      value={classTitle}
-                      onChange={(e) => setClassTitle(e.target.value)}
-                      placeholder="예: 10월 13일 실시간 특강"
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
+
+                {/* 컨트롤 버튼 그룹 */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
                     disabled={actionLoading}
-                    onClick={() => handleAdminAction('create')}
-                    className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm flex items-center justify-center gap-2 transition shadow-md shadow-emerald-200"
+                    onClick={() => handleAdminAction('toggle_mute')}
+                    className={`py-3 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border transition ${
+                      session.isChatMuted
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
                   >
-                    <Play className="w-4 h-4 fill-white" />
-                    <span>새 수업 시작하기 (QR 및 PIN 생성)</span>
+                    {session.isChatMuted ? (
+                      <>
+                        <VolumeX className="w-4 h-4" />
+                        <span>채팅 얼리기 (음소거 중)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="w-4 h-4 text-emerald-600" />
+                        <span>채팅 활성화 상태</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    disabled={actionLoading}
+                    onClick={() => {
+                      if (confirm('채팅 기록을 모두 비우시겠습니까?')) {
+                        handleAdminAction('clear_messages');
+                      }
+                    }}
+                    className="py-3 px-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition"
+                  >
+                    <Trash2 className="w-4 h-4 text-slate-400" />
+                    <span>채팅 내역 비우기</span>
+                  </button>
+
+                  <button
+                    disabled={actionLoading}
+                    onClick={() => {
+                      if (confirm('수업을 종료하시겠습니까? 학생들의 채팅방이 즉시 잠깁니다.')) {
+                        handleAdminAction('close');
+                      }
+                    }}
+                    className="py-3 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-sm shadow-rose-100"
+                  >
+                    <Square className="w-4 h-4" />
+                    <span>수업 종료 (방 닫기)</span>
                   </button>
                 </div>
-              )}
-            </div>
-
-            {/* 대형 실시간 질문 모니터링 섹션 */}
-            {session?.isActive && (
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-indigo-600" />
-                    <h2 className="font-bold text-slate-800 text-base">실시간 수업 질문 및 대화 모니터링</h2>
-                  </div>
-                  <span className="text-xs font-semibold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-100">
-                    총 {messages.length}개 메시지
-                  </span>
-                </div>
-
-                {/* 강사 공지 발송 입력창 */}
-                <form onSubmit={handleSendTeacherMessage} className="flex gap-2">
+              </div>
+            ) : (
+              <div className="mt-4 space-y-4">
+                <p className="text-xs text-slate-600">
+                  수업을 시작하면 새로운 6자리 PIN과 일회성 참여 QR 코드가 발급됩니다.
+                </p>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    수업 주제 / 강의명
+                  </label>
                   <input
                     type="text"
-                    placeholder="강사 전용 공지 메시지 전송 (강사 뱃지가 달립니다)"
-                    value={teacherMsg}
-                    onChange={(e) => setTeacherMsg(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                    value={classTitle}
+                    onChange={(e) => setClassTitle(e.target.value)}
+                    placeholder="예: 10월 13일 실시간 특강"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
-                  <button
-                    type="submit"
-                    className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>공지 발송</span>
-                  </button>
-                </form>
-
-                {/* 대형 메시지 피드 (높이 560px로 시원하게 확장) */}
-                <div className="h-[560px] overflow-y-auto space-y-3 border border-slate-200 rounded-2xl p-4 bg-slate-50/70">
-                  {messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
-                      <MessageSquare className="w-10 h-10 stroke-[1.5] opacity-40" />
-                      <p className="text-sm font-medium">아직 등록된 학생 질문이 없습니다.</p>
-                      <p className="text-xs text-slate-400">학생들이 QR을 스캔하고 질문을 작성하면 실시간으로 여기에 크게 표시됩니다.</p>
-                    </div>
-                  ) : (
-                    messages.map((m) => (
-                      <div
-                        key={m.id}
-                        className={`p-4 rounded-xl border transition shadow-sm ${
-                          m.isTeacher
-                            ? 'bg-indigo-50/80 border-indigo-200'
-                            : 'bg-white border-slate-200 hover:border-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-sm font-bold ${
-                                m.isTeacher ? 'text-indigo-700' : 'text-slate-800'
-                              }`}
-                            >
-                              {m.senderName}
-                            </span>
-                            {m.isTeacher && (
-                              <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">
-                                강사 공지
-                              </span>
-                            )}
-                            <span className="text-xs text-slate-400">
-                              {new Date(m.createdAt).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                              })}
-                            </span>
-                          </div>
-
-                          <button
-                            onClick={() => handleDeleteMessage(m.id)}
-                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition"
-                            title="분탕 메시지 삭제"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        {/* 메시지 내용 (전문 줄바꿈 표시) */}
-                        <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words pl-0.5">
-                          {m.content}
-                        </p>
-                      </div>
-                    ))
-                  )}
                 </div>
+                <button
+                  disabled={actionLoading}
+                  onClick={() => handleAdminAction('create')}
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm flex items-center justify-center gap-2 transition shadow-md shadow-emerald-200"
+                >
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>새 수업 시작하기 (QR 및 PIN 생성)</span>
+                </button>
               </div>
             )}
           </div>
 
-          {/* 2. 우측: QR 코드 및 입장 안내 카드 */}
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center sticky top-6">
-              <h3 className="font-bold text-slate-800 text-sm mb-4">수업 참여 QR 디스플레이</h3>
-              {session?.isActive ? (
-                <QRCodeDisplay pinCode={session.pinCode} sessionId={session.id} />
-              ) : (
-                <div className="text-center p-8 text-slate-400">
-                  <Tv className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                  <p className="text-xs">수업을 시작하면 QR 코드가 여기에 표시됩니다</p>
+          {/* 와이드 실시간 질문 모니터링 섹션 (전체 가로 너비 활용) */}
+          {session?.isActive && (
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-indigo-600" />
+                  <h2 className="font-bold text-slate-800 text-base">실시간 수업 질문 및 대화 모니터링</h2>
                 </div>
-              )}
+                <span className="text-xs font-semibold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-100">
+                  총 {messages.length}개 메시지
+                </span>
+              </div>
+
+              {/* 강사 공지 발송 입력창 */}
+              <form onSubmit={handleSendTeacherMessage} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="강사 전용 공지 메시지 전송 (강사 뱃지가 달립니다)"
+                  value={teacherMsg}
+                  onChange={(e) => setTeacherMsg(e.target.value)}
+                  className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                />
+                <button
+                  type="submit"
+                  className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>공지 발송</span>
+                </button>
+              </form>
+
+              {/* 대형 메시지 피드 (높이 600px, 와이드 뷰) */}
+              <div className="h-[600px] overflow-y-auto space-y-3 border border-slate-200 rounded-2xl p-4 bg-slate-50/70">
+                {messages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+                    <MessageSquare className="w-10 h-10 stroke-[1.5] opacity-40" />
+                    <p className="text-sm font-medium">아직 등록된 학생 질문이 없습니다.</p>
+                    <p className="text-xs text-slate-400">학생들이 QR을 스캔하고 질문을 작성하면 실시간으로 여기에 크게 표시됩니다.</p>
+                  </div>
+                ) : (
+                  messages.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`p-4 rounded-xl border transition shadow-sm ${
+                        m.isTeacher
+                          ? 'bg-indigo-50/80 border-indigo-200'
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-sm font-bold ${
+                              m.isTeacher ? 'text-indigo-700' : 'text-slate-800'
+                            }`}
+                          >
+                            {m.senderName}
+                          </span>
+                          {m.isTeacher && (
+                            <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">
+                              강사 공지
+                            </span>
+                          )}
+                          <span className="text-xs text-slate-400">
+                            {new Date(m.createdAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                            })}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() => handleDeleteMessage(m.id)}
+                          className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition"
+                          title="분탕 메시지 삭제"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* 메시지 내용 (전문 줄바꿈 표시) */}
+                      <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words pl-0.5">
+                        {m.content}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
