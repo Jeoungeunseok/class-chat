@@ -138,3 +138,9 @@ export function checkNickname(sessionId: string, nickname: string): { success: b
   store.participants[sessionId].push(trimmed);
   return { success: true };
 }
+
+export function clearAllData(): void {
+  store.currentSession = null;
+  store.messages = [];
+  store.participants = {};
+}

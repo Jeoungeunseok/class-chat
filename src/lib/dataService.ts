@@ -47,11 +47,10 @@ export async function startNewSession(title: string): Promise<Session> {
 
   if (isSupabaseConfigured && supabase) {
     try {
-      // 1. 기존 활성 세션 비활성화
-      await supabase
-        .from('sessions')
-        .update({ is_active: false, closed_at: new Date().toISOString() })
-        .eq('is_active', true);
+      // 1. 이전 잔여 데이터 완전 삭제 (단일 세션 유지)
+      await supabase.from('messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('sessions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      memoryStore.clearAllData();
 
       // 2. 새 세션 생성
       const { data, error } = await supabase
@@ -90,43 +89,24 @@ export async function startNewSession(title: string): Promise<Session> {
 export async function endSession(): Promise<Session | null> {
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data, error } = await supabase
-        .from('sessions')
-        .update({ is_active: false, closed_at: new Date().toISOString() })
-        .eq('is_active', true)
-        .select()
-        .maybeSingle();
+      // 1. Supabase 메시지 테이블 전체 영구 삭제 (0행)
+      await supabase.from('messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-      if (data?.id) {
-        // 수업 종료 시 해당 세션의 DB 메시지 완전 영구 삭제 (완전 휘발성)
-        await purgeMessages(data.id);
-      }
+      // 2. Supabase 세션 테이블 전체 영구 삭제 (0행)
+      await supabase.from('sessions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-      if (error || !data) {
-        const closed = memoryStore.closeSession();
-        if (closed) memoryStore.clearMessages(closed.id);
-        return closed;
-      }
-
-      return {
-        id: data.id,
-        title: data.title,
-        pinCode: data.pin_code,
-        isActive: data.is_active,
-        isChatMuted: data.is_chat_muted,
-        createdAt: data.created_at,
-        closedAt: data.closed_at,
-      };
-    } catch {
-      const closed = memoryStore.closeSession();
-      if (closed) memoryStore.clearMessages(closed.id);
-      return closed;
+      // 3. 인메모리 스토어 전체 영구 삭제
+      memoryStore.clearAllData();
+      return null;
+    } catch (e) {
+      console.error('Error ending session:', e);
+      memoryStore.clearAllData();
+      return null;
     }
   }
 
-  const closed = memoryStore.closeSession();
-  if (closed) memoryStore.clearMessages(closed.id);
-  return closed;
+  memoryStore.clearAllData();
+  return null;
 }
 
 export async function setChatMute(muted?: boolean): Promise<Session | null> {
