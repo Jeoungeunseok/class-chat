@@ -178,8 +178,8 @@ function ChatRoomContent() {
                     {msg.senderName}
                   </span>
                   {isTeacher && (
-                    <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded font-semibold">
-                      강사
+                    <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-semibold">
+                      공지
                     </span>
                   )}
                 </div>

@@ -130,7 +130,7 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: session.id,
-          senderName: '강사(공지)',
+          senderName: '공지',
           content: teacherMsg.trim(),
           isTeacher: true,
           password,
@@ -362,11 +362,11 @@ export default function AdminPage() {
                 </span>
               </div>
 
-              {/* 강사 공지 발송 입력창 */}
+              {/* 공지 발송 입력창 */}
               <form onSubmit={handleSendTeacherMessage} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="강사 전용 공지 메시지 전송 (강사 뱃지가 달립니다)"
+                  placeholder="공지 메시지를 입력하세요"
                   value={teacherMsg}
                   onChange={(e) => setTeacherMsg(e.target.value)}
                   className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
@@ -376,7 +376,7 @@ export default function AdminPage() {
                   className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
                 >
                   <Send className="w-4 h-4" />
-                  <span>공지 발송</span>
+                  <span>발송</span>
                 </button>
               </form>
 
@@ -409,7 +409,7 @@ export default function AdminPage() {
                           </span>
                           {m.isTeacher && (
                             <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">
-                              강사 공지
+                              공지
                             </span>
                           )}
                           <span className="text-xs text-slate-400">
