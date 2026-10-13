@@ -154,17 +154,12 @@ export default function AdminPage() {
   };
 
   const handleEndSessionWithConfirm = () => {
+    if (!confirm('수업을 종료하시겠습니까?')) {
+      return;
+    }
+    // 수업 종료 시 대화 내역이 있으면 자동으로 텍스트 파일 다운로드
     if (messages.length > 0) {
-      const wantDownload = confirm(
-        '수업을 종료하면 DB의 모든 채팅 내역이 완전히 영구 삭제됩니다.\n\n종료하기 전에 채팅 내역을 텍스트 파일로 다운로드하시겠습니까?'
-      );
-      if (wantDownload) {
-        handleDownloadChatLog();
-      }
-    } else {
-      if (!confirm('수업을 종료하시겠습니까? 학생들의 채팅방이 즉시 잠깁니다.')) {
-        return;
-      }
+      handleDownloadChatLog();
     }
     handleAdminAction('close');
   };
@@ -336,7 +331,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* 컨트롤 버튼 그룹 */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     disabled={actionLoading}
                     onClick={() => handleAdminAction('toggle_mute')}
@@ -360,20 +355,12 @@ export default function AdminPage() {
                   </button>
 
                   <button
-                    onClick={handleDownloadChatLog}
-                    className="py-3 px-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition"
-                  >
-                    <Download className="w-4 h-4 text-indigo-600" />
-                    <span>채팅 내역 다운로드 (.txt)</span>
-                  </button>
-
-                  <button
                     disabled={actionLoading}
                     onClick={handleEndSessionWithConfirm}
                     className="py-3 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition shadow-sm shadow-rose-100"
                   >
                     <Square className="w-4 h-4" />
-                    <span>수업 종료 (DB 영구삭제)</span>
+                    <span>수업 종료</span>
                   </button>
                 </div>
               </div>
