@@ -89,7 +89,7 @@ function ChatRoomContent() {
       });
 
       if (res.ok) {
-        await fetchMessages(sessionId);
+        fetchMessages(sessionId);
         notifyLocalBroadcast('NEW_MESSAGE');
       } else {
         // 실패 시 롤백
