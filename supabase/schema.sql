@@ -1,4 +1,4 @@
--- 1. 수업 세션 관리 테이블
+-- 1. 수업 세션 관리 테이블 생성
 CREATE TABLE IF NOT EXISTS sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(100) DEFAULT '오늘의 실시간 수업',
@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     closed_at TIMESTAMP WITH TIME ZONE
 );
 
--- 2. 메시지 테이블
+-- 2. 메시지 테이블 생성
 CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
@@ -24,6 +24,16 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions(is_active);
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, created_at ASC);
 
--- Realtime 게시판 복제 설정 (Supabase 대시보드에서 활성화 필요)
+-- 3. 익명 사용자(anon key) 읽기 및 쓰기 권한 허용 (RLS 정책)
+ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public access for sessions" ON sessions;
+CREATE POLICY "Public access for sessions" ON sessions FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public access for messages" ON messages;
+CREATE POLICY "Public access for messages" ON messages FOR ALL USING (true) WITH CHECK (true);
+
+-- 4. 실시간 웹소켓 구독 (Realtime) 활성화
 ALTER PUBLICATION supabase_realtime ADD TABLE sessions;
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
