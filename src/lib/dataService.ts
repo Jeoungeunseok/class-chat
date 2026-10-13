@@ -260,3 +260,38 @@ export async function purgeMessages(sessionId: string): Promise<void> {
   }
   memoryStore.clearMessages(sessionId);
 }
+
+export async function checkAndRegisterNickname(
+  sessionId: string,
+  nickname: string
+): Promise<{ success: boolean; error?: string }> {
+  const trimmed = nickname.trim();
+  const normalized = trimmed.toLowerCase();
+
+  // 사칭 방지 예약어
+  const reserved = ['강사', '공지', '관리자', 'admin', 'teacher', 'operator'];
+  if (reserved.includes(normalized)) {
+    return { success: false, error: '해당 닉네임은 사용할 수 없습니다 (예약어).' };
+  }
+
+  // 1. Supabase 메시지 테이블에서 이미 발언한 닉네임인지 확인
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: msgData, error } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('session_id', sessionId)
+        .ilike('sender_name', trimmed)
+        .limit(1);
+
+      if (!error && msgData && msgData.length > 0) {
+        return { success: false, error: '이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요.' };
+      }
+    } catch (e) {
+      console.error('Error checking nickname in Supabase:', e);
+    }
+  }
+
+  // 2. 인메모리 참가자 목록 검사 및 등록
+  return memoryStore.checkNickname(sessionId, trimmed);
+}

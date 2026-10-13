@@ -1,9 +1,9 @@
 import { Session, ChatMessage } from '@/types/chat';
 
-// Hot Module Replacement (HMR) 중에도 메모리 상태 유지
 interface GlobalStore {
   currentSession: Session | null;
   messages: ChatMessage[];
+  participants: Record<string, string[]>;
 }
 
 declare global {
@@ -15,10 +15,14 @@ if (!globalThis.__chatStore) {
   globalThis.__chatStore = {
     currentSession: null,
     messages: [],
+    participants: {},
   };
 }
 
 const store = globalThis.__chatStore;
+if (!store.participants) {
+  store.participants = {};
+}
 
 function generatePin(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -109,4 +113,28 @@ export function deleteMessage(messageId: string): boolean {
 
 export function clearMessages(sessionId: string): void {
   store.messages = store.messages.filter((m) => m.sessionId !== sessionId);
+}
+
+export function checkNickname(sessionId: string, nickname: string): { success: boolean; error?: string } {
+  const trimmed = nickname.trim();
+  const normalized = trimmed.toLowerCase();
+
+  if (!store.participants[sessionId]) {
+    store.participants[sessionId] = [];
+  }
+
+  const exists = store.participants[sessionId].some(
+    (name) => name.toLowerCase() === normalized
+  );
+
+  const msgExists = store.messages.some(
+    (m) => m.sessionId === sessionId && m.senderName.toLowerCase() === normalized
+  );
+
+  if (exists || msgExists) {
+    return { success: false, error: '이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해주세요.' };
+  }
+
+  store.participants[sessionId].push(trimmed);
+  return { success: true };
 }

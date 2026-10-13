@@ -191,13 +191,8 @@ function ChatRoomContent() {
                 <div className="flex items-center gap-1.5 mb-1 ml-1 text-xs text-slate-500 font-medium">
                   {isTeacher && <Crown className="w-3.5 h-3.5 text-amber-500" />}
                   <span className={isTeacher ? 'text-indigo-600 font-bold' : ''}>
-                    {msg.senderName}
+                    {isTeacher ? '강사' : msg.senderName}
                   </span>
-                  {isTeacher && (
-                    <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-semibold">
-                      공지
-                    </span>
-                  )}
                 </div>
               )}
 

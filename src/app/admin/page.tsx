@@ -133,7 +133,7 @@ export default function AdminPage() {
     const optimisticMsg = {
       id: tempId,
       sessionId: session.id,
-      senderName: '공지',
+      senderName: '강사',
       content: contentToSend,
       isTeacher: true,
       createdAt: new Date().toISOString(),
@@ -146,7 +146,7 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: session.id,
-          senderName: '공지',
+          senderName: '강사',
           content: contentToSend,
           isTeacher: true,
           password,
@@ -384,7 +384,7 @@ export default function AdminPage() {
               <form onSubmit={handleSendTeacherMessage} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="공지 메시지를 입력하세요"
+                  placeholder="메시지를 입력하세요"
                   value={teacherMsg}
                   onChange={(e) => setTeacherMsg(e.target.value)}
                   className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
@@ -423,13 +423,8 @@ export default function AdminPage() {
                               m.isTeacher ? 'text-indigo-700' : 'text-slate-800'
                             }`}
                           >
-                            {m.senderName}
+                            {m.isTeacher ? '강사' : m.senderName}
                           </span>
-                          {m.isTeacher && (
-                            <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">
-                              공지
-                            </span>
-                          )}
                           <span className="text-xs text-slate-400">
                             {new Date(m.createdAt).toLocaleTimeString([], {
                               hour: '2-digit',

@@ -43,7 +43,9 @@ function StudentJoinContent() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleJoin = (e: React.FormEvent) => {
+  const [isJoining, setIsJoining] = useState(false);
+
+  const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -72,12 +74,35 @@ function StudentJoinContent() {
       return;
     }
 
-    // 로컬 스토리지에 닉네임 저장
-    sessionStorage.setItem('chat_nickname', nameInput.trim());
-    sessionStorage.setItem('chat_session_id', session.id);
+    setIsJoining(true);
+    try {
+      const res = await fetch('/api/session/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: session.id,
+          pinCode: pinInput.trim(),
+          nickname: nameInput.trim(),
+        }),
+      });
 
-    // 채팅방으로 이동
-    router.push(`/chat?sessionId=${session.id}&name=${encodeURIComponent(nameInput.trim())}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || '입장에 실패했습니다.');
+        setIsJoining(false);
+        return;
+      }
+
+      // 로컬 스토리지에 닉네임 저장
+      sessionStorage.setItem('chat_nickname', nameInput.trim());
+      sessionStorage.setItem('chat_session_id', session.id);
+
+      // 채팅방으로 이동
+      router.push(`/chat?sessionId=${session.id}&name=${encodeURIComponent(nameInput.trim())}`);
+    } catch {
+      setErrorMsg('서버와 통신 중 오류가 발생했습니다.');
+      setIsJoining(false);
+    }
   };
 
   return (
@@ -167,9 +192,10 @@ function StudentJoinContent() {
 
               <button
                 type="submit"
-                className="w-full mt-2 py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 transition active:scale-[0.99]"
+                disabled={isJoining}
+                className="w-full mt-2 py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold rounded-xl shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 transition active:scale-[0.99]"
               >
-                <span>수업 채팅 입장하기</span>
+                <span>{isJoining ? '입장 확인 중...' : '수업 채팅 입장하기'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
