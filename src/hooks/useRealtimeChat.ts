@@ -145,6 +145,7 @@ export function useRealtimeChat({ sessionId, onSessionClosed }: UseRealtimeChatP
   return {
     session,
     messages,
+    setMessages,
     loading,
     onlineCount,
     setOnlineCount,

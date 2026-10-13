@@ -28,6 +28,7 @@ function ChatRoomContent() {
     session,
     messages,
     loading,
+    setMessages,
     fetchMessages,
     notifyLocalBroadcast,
   } = useRealtimeChat({
@@ -60,9 +61,20 @@ function ChatRoomContent() {
       return;
     }
 
-    setIsSending(true);
     const contentToSend = inputMessage.trim();
     setInputMessage('');
+
+    // 낙관적 업데이트: 내 화면에 즉시 0ms로 메시지 반영
+    const tempId = `temp_${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
+      sessionId,
+      senderName: myName,
+      content: contentToSend,
+      isTeacher: false,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
 
     try {
       const res = await fetch('/api/messages', {
@@ -80,10 +92,14 @@ function ChatRoomContent() {
         await fetchMessages(sessionId);
         notifyLocalBroadcast('NEW_MESSAGE');
       } else {
+        // 실패 시 롤백
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
         const data = await res.json();
         alert(data.error || '메시지 전송에 실패했습니다.');
       }
     } catch (e) {
+      // 실패 시 롤백
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       console.error(e);
       alert('메시지 전송 중 통신 오류가 발생했습니다.');
     } finally {

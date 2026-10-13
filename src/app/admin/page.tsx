@@ -33,6 +33,7 @@ export default function AdminPage() {
   const {
     session,
     messages,
+    setMessages,
     fetchSession,
     fetchMessages,
     notifyLocalBroadcast,
@@ -124,6 +125,21 @@ export default function AdminPage() {
     e.preventDefault();
     if (!session || !teacherMsg.trim()) return;
 
+    const contentToSend = teacherMsg.trim();
+    setTeacherMsg('');
+
+    // 낙관적 업데이트: 강사 화면에 즉시 0ms 반영
+    const tempId = `temp_${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
+      sessionId: session.id,
+      senderName: '공지',
+      content: contentToSend,
+      isTeacher: true,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
     try {
       const res = await fetch('/api/messages', {
         method: 'POST',
@@ -131,18 +147,20 @@ export default function AdminPage() {
         body: JSON.stringify({
           sessionId: session.id,
           senderName: '공지',
-          content: teacherMsg.trim(),
+          content: contentToSend,
           isTeacher: true,
           password,
         }),
       });
 
       if (res.ok) {
-        setTeacherMsg('');
         fetchMessages(session.id);
         notifyLocalBroadcast('NEW_MESSAGE');
+      } else {
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
       }
     } catch (e) {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       console.error(e);
     }
   };
