@@ -229,7 +229,7 @@ function ChatRoomContent() {
                   ? '수업이 종료되었습니다'
                   : isMuted
                   ? '강사님이 채팅을 일시 정지했습니다'
-                  : '메시지를 입력하세요 (Enter: 전송, Shift+Enter: 줄바꿈)'
+                  : '메시지를 입력하세요'
               }
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
