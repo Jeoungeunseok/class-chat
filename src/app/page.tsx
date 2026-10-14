@@ -59,11 +59,6 @@ function StudentJoinContent() {
       return;
     }
 
-    if (pinInput.trim() !== session.pinCode) {
-      setErrorMsg('PIN 코드가 올바르지 않습니다. 강사 화면을 확인해주세요.');
-      return;
-    }
-
     if (!nameInput.trim()) {
       setErrorMsg('사용할 닉네임을 입력해주세요.');
       return;
@@ -75,6 +70,13 @@ function StudentJoinContent() {
     }
 
     setIsJoining(true);
+    const trimmedName = nameInput.trim();
+    const tokenKey = `chat_rejoin_${session.id}_${trimmedName.toLowerCase()}`;
+    let savedToken: string | null = null;
+    try {
+      savedToken = localStorage.getItem(tokenKey);
+    } catch {}
+
     try {
       const res = await fetch('/api/session/join', {
         method: 'POST',
@@ -82,7 +84,8 @@ function StudentJoinContent() {
         body: JSON.stringify({
           sessionId: session.id,
           pinCode: pinInput.trim(),
-          nickname: nameInput.trim(),
+          nickname: trimmedName,
+          rejoinToken: savedToken || undefined,
         }),
       });
 
@@ -93,12 +96,18 @@ function StudentJoinContent() {
         return;
       }
 
-      // 로컬 스토리지에 닉네임 저장
-      sessionStorage.setItem('chat_nickname', nameInput.trim());
+      // 재입장 토큰(같은 닉네임 재사용) 및 PIN 저장
+      try {
+        if (data.rejoinToken) localStorage.setItem(tokenKey, data.rejoinToken);
+        localStorage.setItem(`chat_pin_${session.id}`, pinInput.trim());
+      } catch {}
+      sessionStorage.setItem('chat_nickname', trimmedName);
       sessionStorage.setItem('chat_session_id', session.id);
 
       // 채팅방으로 이동
-      router.push(`/chat?sessionId=${session.id}&name=${encodeURIComponent(nameInput.trim())}`);
+      router.push(`/chat?sessionId=${session.id}&name=${encodeURIComponent(trimmedName)}`);
+      // 페이지 상태가 보존되므로, 채팅방에서 나와 돌아왔을 때 버튼이 잠겨있지 않도록 초기화
+      setIsJoining(false);
     } catch {
       setErrorMsg('서버와 통신 중 오류가 발생했습니다.');
       setIsJoining(false);

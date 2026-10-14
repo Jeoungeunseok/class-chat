@@ -13,6 +13,14 @@ import {
 } from 'lucide-react';
 import { useRealtimeChat } from '@/hooks/useRealtimeChat';
 
+function getSavedPin(sessionId: string): string {
+  try {
+    return localStorage.getItem(`chat_pin_${sessionId}`) || '';
+  } catch {
+    return '';
+  }
+}
+
 function ChatRoomContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -86,6 +94,7 @@ function ChatRoomContent() {
           senderName: myName,
           content: contentToSend,
           isTeacher: false,
+          pinCode: getSavedPin(sessionId),
         }),
       });
 

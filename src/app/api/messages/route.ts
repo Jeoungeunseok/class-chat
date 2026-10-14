@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { sessionId, senderName, content, isTeacher, password } = body;
+    const { sessionId, senderName, content, isTeacher, password, pinCode } = body;
 
     if (!sessionId || !senderName || !content?.trim()) {
       return NextResponse.json({ error: '필수 항목이 누락되었습니다.' }, { status: 400 });
@@ -51,6 +51,14 @@ export async function POST(req: NextRequest) {
 
     // 관리자(강사) 검증
     const isVerifiedTeacher = isTeacher && password === ADMIN_PASSWORD;
+
+    // 학생은 PIN을 아는 경우에만 메시지 전송 가능 (URL 직접 접근 차단)
+    if (!isVerifiedTeacher && String(pinCode ?? '').trim() !== session.pinCode) {
+      return NextResponse.json(
+        { error: '입장 정보가 올바르지 않습니다. 첫 화면에서 PIN으로 다시 입장해주세요.' },
+        { status: 403 }
+      );
+    }
 
     // 채팅 음소거 상태 검사 (강사는 예외)
     if (session.isChatMuted && !isVerifiedTeacher) {

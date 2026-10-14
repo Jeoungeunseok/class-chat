@@ -10,10 +10,13 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin1234';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await fetchCurrentSession();
+  const isAdmin = req.headers.get('x-admin-password') === ADMIN_PASSWORD;
+
+  // PIN은 강사(관리자)에게만 전달 — 학생은 QR/공유받은 PIN으로만 입장
   return NextResponse.json({
-    session,
+    session: session && !isAdmin ? { ...session, pinCode: '' } : session,
     isSupabaseConfigured,
   });
 }

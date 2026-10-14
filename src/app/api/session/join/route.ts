@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchCurrentSession, checkAndRegisterNickname } from '@/lib/dataService';
+import { createJoinToken, verifyJoinToken } from '@/lib/joinToken';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { sessionId, pinCode, nickname } = body;
+    const { sessionId, pinCode, nickname, rejoinToken } = body;
 
     if (!sessionId || !pinCode || !nickname?.trim()) {
       return NextResponse.json({ error: '필수 항목이 누락되었습니다.' }, { status: 400 });
@@ -29,12 +30,16 @@ export async function POST(req: NextRequest) {
     }
 
     // 닉네임 중복 검증
-    const checkResult = await checkAndRegisterNickname(sessionId, trimmedName);
+    const isRejoin = verifyJoinToken(sessionId, trimmedName, rejoinToken);
+    const checkResult = await checkAndRegisterNickname(sessionId, trimmedName, isRejoin);
     if (!checkResult.success) {
       return NextResponse.json({ error: checkResult.error }, { status: 409 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      rejoinToken: createJoinToken(sessionId, trimmedName),
+    });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : '서버 오류';
     return NextResponse.json({ error: errorMsg }, { status: 500 });

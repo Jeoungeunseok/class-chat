@@ -40,6 +40,7 @@ export default function AdminPage() {
     notifyLocalBroadcast,
   } = useRealtimeChat({
     sessionId: undefined,
+    adminPassword: isAuthenticated ? password : undefined,
   });
 
   // 관리자 로그인 확인

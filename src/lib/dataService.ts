@@ -265,13 +265,19 @@ export function isReservedNickname(nickname: string): boolean {
 
 export async function checkAndRegisterNickname(
   sessionId: string,
-  nickname: string
+  nickname: string,
+  isRejoin: boolean = false
 ): Promise<{ success: boolean; error?: string }> {
   const trimmed = nickname.trim();
   const normalized = trimmed.toLowerCase();
 
   if (isReservedNickname(normalized)) {
     return { success: false, error: '해당 닉네임은 사용할 수 없습니다 (예약어).' };
+  }
+
+  // 같은 브라우저에서 같은 닉네임으로 다시 들어오는 경우 (재입장 토큰 검증됨)
+  if (isRejoin) {
+    return { success: true };
   }
 
   // 1. Supabase 메시지 테이블에서 이미 발언한 닉네임인지 확인

@@ -6,10 +6,11 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface UseRealtimeChatProps {
   sessionId?: string;
+  adminPassword?: string;
   onSessionClosed?: () => void;
 }
 
-export function useRealtimeChat({ sessionId, onSessionClosed }: UseRealtimeChatProps = {}) {
+export function useRealtimeChat({ sessionId, adminPassword, onSessionClosed }: UseRealtimeChatProps = {}) {
   const [session, setSession] = useState<Session | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -47,7 +48,9 @@ export function useRealtimeChat({ sessionId, onSessionClosed }: UseRealtimeChatP
   // 2. 세션 정보 조회
   const fetchSession = useCallback(async () => {
     try {
-      const res = await fetch('/api/session');
+      const res = await fetch('/api/session', {
+        headers: adminPassword ? { 'x-admin-password': adminPassword } : undefined,
+      });
       const data = await res.json();
       if (data.session) {
         setSession(data.session);
@@ -62,7 +65,7 @@ export function useRealtimeChat({ sessionId, onSessionClosed }: UseRealtimeChatP
       console.error('Failed to fetch session', e);
       return null;
     }
-  }, [onSessionClosed]);
+  }, [adminPassword, onSessionClosed]);
 
   // 3. 브로드캐스트 이벤트 전파 (로컬 창 간 실시간)
   const notifyLocalBroadcast = useCallback((type: 'NEW_MESSAGE' | 'SESSION_UPDATE') => {
