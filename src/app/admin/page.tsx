@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { QRCodeDisplay } from '@/components/QRCodeDisplay';
 import { useRealtimeChat } from '@/hooks/useRealtimeChat';
+import { useStickToBottom } from '@/hooks/useStickToBottom';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,6 +43,14 @@ export default function AdminPage() {
     sessionId: undefined,
     adminPassword: isAuthenticated ? password : undefined,
   });
+
+  // 모니터링 보드: 새 메시지가 오면 자동으로 맨 아래로 (위로 스크롤해 읽는 중이면 유지)
+  const lastMessageId = messages[messages.length - 1]?.id ?? '';
+  const {
+    ref: feedRef,
+    onScroll: handleFeedScroll,
+    scrollToBottom: scrollFeedToBottom,
+  } = useStickToBottom<HTMLDivElement>(`${messages.length}:${lastMessageId}`);
 
   // 관리자 로그인 확인
   useEffect(() => {
@@ -195,6 +204,7 @@ export default function AdminPage() {
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticMsg]);
+    requestAnimationFrame(scrollFeedToBottom);
 
     try {
       const res = await fetch('/api/messages', {
@@ -438,7 +448,10 @@ export default function AdminPage() {
               </form>
 
               {/* 대형 메시지 피드 (높이 600px, 와이드 뷰) */}
-              <div className="h-[600px] overflow-y-auto space-y-3 border border-slate-200 rounded-2xl p-4 bg-slate-50/70">
+              <div
+                ref={feedRef}
+                onScroll={handleFeedScroll}
+                className="h-[600px] overflow-y-auto space-y-3 border border-slate-200 rounded-2xl p-4 bg-slate-50/70">
                 {messages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
                     <MessageSquare className="w-10 h-10 stroke-[1.5] opacity-40" />

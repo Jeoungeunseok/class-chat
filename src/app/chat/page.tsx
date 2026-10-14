@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useState, useEffect, useRef } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Send,
@@ -12,6 +12,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useRealtimeChat } from '@/hooks/useRealtimeChat';
+import { useStickToBottom } from '@/hooks/useStickToBottom';
 
 function getSavedPin(sessionId: string): string {
   try {
@@ -30,7 +31,6 @@ function ChatRoomContent() {
 
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
     session,
@@ -50,10 +50,13 @@ function ChatRoomContent() {
     }
   }, [sessionId, myName, router]);
 
-  // 새 메시지 시 하단 스크롤
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  // 새 메시지가 추가됐을 때만 하단으로 스크롤 (폴링으로 목록이 갱신될 때마다 끌어내리지 않음)
+  const lastMessageId = messages[messages.length - 1]?.id ?? '';
+  const {
+    ref: messageListRef,
+    onScroll: handleMessageListScroll,
+    scrollToBottom,
+  } = useStickToBottom<HTMLDivElement>(`${messages.length}:${lastMessageId}`);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -84,6 +87,8 @@ function ChatRoomContent() {
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticMsg]);
+    // 내가 보낸 메시지는 위로 스크롤해 있었더라도 바로 보이도록
+    requestAnimationFrame(scrollToBottom);
 
     try {
       const res = await fetch('/api/messages', {
@@ -181,7 +186,11 @@ function ChatRoomContent() {
       )}
 
       {/* 메시지 리스트 영역 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div
+        ref={messageListRef}
+        onScroll={handleMessageListScroll}
+        className="flex-1 overflow-y-auto p-4 space-y-3"
+      >
         <div className="text-center py-2">
           <span className="text-[11px] bg-slate-200/70 text-slate-600 px-3 py-1 rounded-full">
             수업 시작 시점부터 작성된 실시간 대화입니다
@@ -235,7 +244,6 @@ function ChatRoomContent() {
           );
         })}
 
-        <div ref={messagesEndRef} />
       </div>
 
       {/* 하단 입력바 */}
