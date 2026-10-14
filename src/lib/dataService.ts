@@ -145,23 +145,27 @@ export async function setChatMute(muted?: boolean): Promise<Session | null> {
   return memoryStore.toggleMute(muted);
 }
 
-export async function fetchMessages(sessionId: string): Promise<ChatMessage[]> {
+export async function fetchMessages(
+  sessionId: string,
+  limit: number = 300
+): Promise<ChatMessage[]> {
   if (isSupabaseConfigured && supabase) {
     try {
+      // 최신 메시지 기준으로 limit개를 가져온 뒤 시간순으로 뒤집음
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .eq('session_id', sessionId)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: true })
-        .limit(100);
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
       if (error) {
         console.error('Supabase fetchMessages error:', error);
-        return memoryStore.getMessages(sessionId);
+        return memoryStore.getMessages(sessionId, limit);
       }
 
-      return (data || []).map((m) => ({
+      return (data || []).reverse().map((m) => ({
         id: m.id,
         sessionId: m.session_id,
         senderName: m.sender_name,
@@ -171,11 +175,11 @@ export async function fetchMessages(sessionId: string): Promise<ChatMessage[]> {
         createdAt: m.created_at,
       }));
     } catch {
-      return memoryStore.getMessages(sessionId);
+      return memoryStore.getMessages(sessionId, limit);
     }
   }
 
-  return memoryStore.getMessages(sessionId);
+  return memoryStore.getMessages(sessionId, limit);
 }
 
 export async function postMessage(
@@ -252,6 +256,13 @@ export async function purgeMessages(sessionId: string): Promise<void> {
   memoryStore.clearMessages(sessionId);
 }
 
+// 사칭 방지 예약어
+const RESERVED_NICKNAMES = ['강사', '공지', '관리자', 'admin', 'teacher', 'operator'];
+
+export function isReservedNickname(nickname: string): boolean {
+  return RESERVED_NICKNAMES.includes(nickname.trim().toLowerCase());
+}
+
 export async function checkAndRegisterNickname(
   sessionId: string,
   nickname: string
@@ -259,9 +270,7 @@ export async function checkAndRegisterNickname(
   const trimmed = nickname.trim();
   const normalized = trimmed.toLowerCase();
 
-  // 사칭 방지 예약어
-  const reserved = ['강사', '공지', '관리자', 'admin', 'teacher', 'operator'];
-  if (reserved.includes(normalized)) {
+  if (isReservedNickname(normalized)) {
     return { success: false, error: '해당 닉네임은 사용할 수 없습니다 (예약어).' };
   }
 

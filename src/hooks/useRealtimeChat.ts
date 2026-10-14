@@ -26,7 +26,18 @@ export function useRealtimeChat({ sessionId, onSessionClosed }: UseRealtimeChatP
       const res = await fetch(`/api/messages?sessionId=${encodeURIComponent(targetSessionId)}`);
       const data = await res.json();
       if (data.messages) {
-        setMessages(data.messages);
+        const serverMessages: ChatMessage[] = data.messages;
+        // 전송 중인 낙관적 메시지(temp_*)는 서버 목록에 반영될 때까지 유지 (폴링 시 깜빡임 방지)
+        setMessages((prev) => {
+          const pending = prev.filter(
+            (m) =>
+              m.id.startsWith('temp_') &&
+              !serverMessages.some(
+                (s) => s.senderName === m.senderName && s.content === m.content
+              )
+          );
+          return pending.length > 0 ? [...serverMessages, ...pending] : serverMessages;
+        });
       }
     } catch (e) {
       console.error('Failed to fetch messages', e);

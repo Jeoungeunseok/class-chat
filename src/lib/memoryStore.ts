@@ -70,10 +70,10 @@ export function toggleMute(muted?: boolean): Session | null {
   return store.currentSession;
 }
 
-export function getMessages(sessionId: string): ChatMessage[] {
+export function getMessages(sessionId: string, limit: number = 300): ChatMessage[] {
   return store.messages
     .filter((m) => m.sessionId === sessionId && !m.isDeleted)
-    .slice(-100); // 최근 100개
+    .slice(-limit); // 최근 limit개
 }
 
 export function addMessage(

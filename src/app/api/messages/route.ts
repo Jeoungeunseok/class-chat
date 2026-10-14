@@ -4,6 +4,7 @@ import {
   fetchMessages,
   postMessage,
   removeMessage,
+  isReservedNickname,
 } from '@/lib/dataService';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin1234';
@@ -16,7 +17,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'sessionId가 필요합니다.' }, { status: 400 });
   }
 
-  const messages = await fetchMessages(sessionId);
+  // all=1: 수업 종료 시 채팅 기록 다운로드용 전체 조회
+  const limit = searchParams.get('all') === '1' ? 5000 : 300;
+  const messages = await fetchMessages(sessionId, limit);
   return NextResponse.json({ messages });
 }
 
@@ -53,6 +56,14 @@ export async function POST(req: NextRequest) {
     if (session.isChatMuted && !isVerifiedTeacher) {
       return NextResponse.json(
         { error: '현재 강사님이 채팅을 일시 정지(음소거)했습니다.' },
+        { status: 403 }
+      );
+    }
+
+    // 학생이 URL 조작으로 '강사' 등 예약 닉네임을 쓰는 것 차단
+    if (!isVerifiedTeacher && isReservedNickname(senderName)) {
+      return NextResponse.json(
+        { error: '사용할 수 없는 닉네임입니다.' },
         { status: 403 }
       );
     }

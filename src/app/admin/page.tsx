@@ -122,20 +122,32 @@ export default function AdminPage() {
     }
   };
 
-  const handleDownloadChatLog = () => {
+  const handleDownloadChatLog = async () => {
     if (!session || messages.length === 0) {
       alert('다운로드할 채팅 내역이 없습니다.');
       return;
+    }
+
+    // 화면에는 최근 메시지만 유지되므로, 기록 저장 시에는 전체 내역을 다시 조회
+    let allMessages = messages;
+    try {
+      const res = await fetch(`/api/messages?sessionId=${encodeURIComponent(session.id)}&all=1`);
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.messages) && data.messages.length > 0) {
+        allMessages = data.messages;
+      }
+    } catch (e) {
+      console.error('Failed to fetch full chat log', e);
     }
 
     const title = session.title || '수업_채팅기록';
     let text = `========================================\n`;
     text += `수업명: ${title}\n`;
     text += `일시: ${new Date().toLocaleString()}\n`;
-    text += `총 메시지 수: ${messages.length}개\n`;
+    text += `총 메시지 수: ${allMessages.length}개\n`;
     text += `========================================\n\n`;
 
-    messages.forEach((m) => {
+    allMessages.forEach((m) => {
       const time = new Date(m.createdAt).toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
@@ -153,13 +165,13 @@ export default function AdminPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleEndSessionWithConfirm = () => {
+  const handleEndSessionWithConfirm = async () => {
     if (!confirm('수업을 종료하시겠습니까?')) {
       return;
     }
-    // 수업 종료 시 대화 내역이 있으면 자동으로 텍스트 파일 다운로드
+    // 수업 종료 시 대화 내역이 있으면 자동으로 텍스트 파일 다운로드 (DB 삭제 전에 완료)
     if (messages.length > 0) {
-      handleDownloadChatLog();
+      await handleDownloadChatLog();
     }
     handleAdminAction('close');
   };

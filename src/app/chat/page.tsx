@@ -63,6 +63,7 @@ function ChatRoomContent() {
 
     const contentToSend = inputMessage.trim();
     setInputMessage('');
+    setIsSending(true);
 
     // 낙관적 업데이트: 내 화면에 즉시 0ms로 메시지 반영
     const tempId = `temp_${Date.now()}`;
@@ -118,7 +119,7 @@ function ChatRoomContent() {
   const isMuted = session?.isChatMuted;
 
   return (
-    <main className="flex flex-col h-screen max-h-screen bg-slate-100 overflow-hidden">
+    <main className="flex flex-col h-dvh max-h-dvh bg-slate-100 overflow-hidden">
       {/* 헤더 */}
       <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm z-10 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
@@ -266,7 +267,7 @@ function ChatRoomContent() {
 
 export default function ChatRoomPage() {
   return (
-    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-slate-100">채팅방을 불러오는 중...</div>}>
+    <Suspense fallback={<div className="h-dvh flex items-center justify-center bg-slate-100">채팅방을 불러오는 중...</div>}>
       <ChatRoomContent />
     </Suspense>
   );
