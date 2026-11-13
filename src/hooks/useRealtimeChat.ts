@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Session, ChatMessage } from '@/types/chat';
+import { Session, ChatMessage, MessageRow, mapMessageRow } from '@/types/chat';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface UseRealtimeChatProps {
@@ -162,27 +162,11 @@ export function useRealtimeChat({ sessionId, adminPassword, onSessionClosed }: U
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const row = payload.new as {
-              id: string;
-              session_id: string;
-              sender_name: string;
-              content: string;
-              is_teacher?: boolean;
-              is_deleted?: boolean;
-              created_at: string;
-            };
+            const row = payload.new as MessageRow;
 
             if (!row || row.is_deleted) return;
 
-            const newMsg: ChatMessage = {
-              id: row.id,
-              sessionId: row.session_id,
-              senderName: row.sender_name,
-              content: row.content,
-              isTeacher: Boolean(row.is_teacher),
-              isDeleted: Boolean(row.is_deleted),
-              createdAt: row.created_at,
-            };
+            const newMsg = mapMessageRow(row);
 
             realtimeArrivalsRef.current.set(newMsg.id, Date.now());
             setMessages((prev) => {
@@ -207,15 +191,7 @@ export function useRealtimeChat({ sessionId, adminPassword, onSessionClosed }: U
               return [...prev, newMsg];
             });
           } else if (payload.eventType === 'UPDATE') {
-            const row = payload.new as {
-              id: string;
-              session_id: string;
-              sender_name: string;
-              content: string;
-              is_teacher?: boolean;
-              is_deleted?: boolean;
-              created_at: string;
-            };
+            const row = payload.new as MessageRow;
 
             if (!row) return;
 

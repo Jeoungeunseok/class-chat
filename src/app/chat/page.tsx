@@ -10,9 +10,12 @@ import {
   Users,
   Crown,
   Sparkles,
+  FolderOpen,
+  X,
 } from 'lucide-react';
 import { useRealtimeChat } from '@/hooks/useRealtimeChat';
 import { useStickToBottom } from '@/hooks/useStickToBottom';
+import { FileCard } from '@/components/FileCard';
 
 function getSavedPin(sessionId: string): string {
   try {
@@ -31,6 +34,7 @@ function ChatRoomContent() {
 
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [showFiles, setShowFiles] = useState(false);
 
   const {
     session,
@@ -129,6 +133,7 @@ function ChatRoomContent() {
     }
   };
 
+  const sharedFiles = messages.filter((m) => m.filePath && m.fileName);
   const isClosed = !session || !session.isActive;
   const isMuted = session?.isChatMuted;
 
@@ -157,6 +162,18 @@ function ChatRoomContent() {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowFiles((v) => !v)}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+              showFiles
+                ? 'bg-indigo-600 text-white'
+                : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
+            }`}
+            title="강사님이 올린 자료 모아보기"
+          >
+            <FolderOpen className="w-4 h-4" />
+            <span>자료 {sharedFiles.length}</span>
+          </button>
+          <button
             onClick={() => {
               if (confirm('채팅방을 나가시겠습니까?')) {
                 router.push('/');
@@ -169,6 +186,36 @@ function ChatRoomContent() {
           </button>
         </div>
       </header>
+
+      {/* 수업 자료 모아보기 패널 */}
+      {showFiles && (
+        <div className="bg-white border-b border-slate-200 px-4 py-3 shrink-0 shadow-sm max-h-[45vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-slate-700">수업 자료 ({sharedFiles.length})</p>
+            <button
+              onClick={() => setShowFiles(false)}
+              className="p-1 text-slate-400 hover:text-slate-600 rounded"
+              title="닫기"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {sharedFiles.length === 0 ? (
+            <p className="text-xs text-slate-400 py-2">아직 강사님이 올린 자료가 없습니다.</p>
+          ) : (
+            <div className="space-y-2">
+              {sharedFiles.map((m) => (
+                <FileCard
+                  key={m.id}
+                  filePath={m.filePath!}
+                  fileName={m.fileName!}
+                  fileSize={m.fileSize}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 상태 알림 배너 */}
       {isClosed && !loading && (
@@ -231,6 +278,16 @@ function ChatRoomContent() {
                       : 'bg-white text-slate-800 border border-slate-200 rounded-tl-sm'
                   }`}
                 >
+                  {msg.filePath && msg.fileName && (
+                    <div className={`${msg.content ? 'mb-2' : ''} w-64 max-w-full`}>
+                      <FileCard
+                        filePath={msg.filePath}
+                        fileName={msg.fileName}
+                        fileSize={msg.fileSize}
+                        onDark={Boolean(isTeacher || isMe)}
+                      />
+                    </div>
+                  )}
                   {msg.content}
                 </div>
 

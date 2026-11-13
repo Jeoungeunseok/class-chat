@@ -19,6 +19,7 @@
    - **채팅 일시 정지 (Mute/Freeze)**: 설명 중 학생 채팅창 일시 잠금
    - **분탕 메시지 삭제**: 클릭 한 번으로 문제 메시지 실시간 삭제
    - **강사 공지 전송**: 강사 공지 뱃지가 달린 강조 공지 발송
+   - **수업 자료 파일 공유**: 강사가 파일(최대 50MB)을 올리면 채팅창에 파일 카드로 표시되고, 학생·강사 모두 눌러서 다운로드 (학생은 업로드 불가, 수업 종료 시 파일도 함께 삭제)
 4. **모바일 최적화 반응형 UI**
    - 스마트폰, 태블릿, 노트북 어디서나 쾌적한 메신저 인터페이스
 
@@ -51,6 +52,8 @@ npm run dev
    - `ADMIN_PASSWORD`: 강사 관리자 비밀번호 (기본값: `admin1234`)
    - `NEXT_PUBLIC_SUPABASE_URL`: Supabase 프로젝트 URL (대규모/영구 DB 연결 시)
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase 익명 공개 키
+   - `SUPABASE_SERVICE_ROLE_KEY`: Supabase 서버 전용 키 (강사 파일 업로드에 필요, **절대 `NEXT_PUBLIC_`을 붙이지 마세요**)
+     - Supabase 대시보드 → Project Settings → API Keys → `service_role` (secret) 키
 4. **Deploy 클릭** -> 1분 내로 전 세계 무료 배포 완료
 
 ---

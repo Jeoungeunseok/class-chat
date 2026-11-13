@@ -6,6 +6,8 @@ import {
   removeMessage,
   isReservedNickname,
 } from '@/lib/dataService';
+import { isValidSessionFilePath, MAX_FILE_SIZE } from '@/lib/fileStorage';
+import { MessageFile } from '@/types/chat';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin1234';
 
@@ -26,9 +28,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { sessionId, senderName, content, isTeacher, password, pinCode } = body;
+    const { sessionId, senderName, content, isTeacher, password, pinCode, file } = body;
+    const hasFile = Boolean(file && typeof file === 'object');
 
-    if (!sessionId || !senderName || !content?.trim()) {
+    if (!sessionId || !senderName || (!content?.trim() && !hasFile)) {
       return NextResponse.json({ error: '필수 항목이 누락되었습니다.' }, { status: 400 });
     }
 
@@ -76,14 +79,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 첨부파일은 강사만, 해당 수업 폴더에 업로드된 파일만 허용
+    let attachedFile: MessageFile | undefined;
+    if (hasFile) {
+      if (!isVerifiedTeacher) {
+        return NextResponse.json({ error: '파일은 강사만 올릴 수 있습니다.' }, { status: 403 });
+      }
+      const size = Number(file.size);
+      if (
+        !isValidSessionFilePath(sessionId, file.path) ||
+        typeof file.name !== 'string' ||
+        !file.name.trim() ||
+        !Number.isFinite(size) ||
+        size < 0 ||
+        size > MAX_FILE_SIZE
+      ) {
+        return NextResponse.json({ error: '첨부파일 정보가 올바르지 않습니다.' }, { status: 400 });
+      }
+      attachedFile = { path: file.path, name: file.name.trim().slice(0, 200), size };
+    }
+
     // 메시지 글자 수 제한
-    const sanitizedContent = content.trim().slice(0, 500);
+    const sanitizedContent = String(content ?? '').trim().slice(0, 500);
 
     const message = await postMessage(
       sessionId,
       senderName.slice(0, 20),
       sanitizedContent,
-      isVerifiedTeacher
+      isVerifiedTeacher,
+      attachedFile
     );
 
     return NextResponse.json({ success: true, message });

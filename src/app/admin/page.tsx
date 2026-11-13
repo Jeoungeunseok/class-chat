@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Shield,
@@ -18,10 +18,15 @@ import {
   ArrowLeft,
   CheckCircle2,
   Download,
+  Paperclip,
+  Loader2,
 } from 'lucide-react';
 import { QRCodeDisplay } from '@/components/QRCodeDisplay';
 import { useRealtimeChat } from '@/hooks/useRealtimeChat';
 import { useStickToBottom } from '@/hooks/useStickToBottom';
+import { FileCard } from '@/components/FileCard';
+import { supabase } from '@/lib/supabase';
+import { FILE_BUCKET } from '@/lib/files';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -31,6 +36,8 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [showProjectorModal, setShowProjectorModal] = useState(false);
   const [teacherMsg, setTeacherMsg] = useState('');
+  const [uploadStatus, setUploadStatus] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     session,
@@ -163,7 +170,8 @@ export default function AdminPage() {
         minute: '2-digit',
         second: '2-digit',
       });
-      text += `[${time}] ${m.senderName}: ${m.content}\n`;
+      const fileNote = m.fileName ? `[파일] ${m.fileName}${m.content ? ' ' : ''}` : '';
+      text += `[${time}] ${m.senderName}: ${fileNote}${m.content}\n`;
     });
 
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
@@ -228,6 +236,78 @@ export default function AdminPage() {
     } catch (e) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       console.error(e);
+    }
+  };
+
+  // 강사 자료 업로드: 서버에서 1회용 토큰 발급 → 브라우저가 Supabase Storage로 직접 업로드 → 채팅에 파일 메시지 발송
+  const handleUploadFiles = async (fileList: FileList | null) => {
+    if (!session || !fileList || fileList.length === 0) return;
+    if (!supabase) {
+      alert('Supabase가 연결되어 있지 않아 파일을 올릴 수 없습니다.');
+      return;
+    }
+
+    const files = Array.from(fileList);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadStatus(
+          files.length > 1 ? `업로드 중 (${i + 1}/${files.length}): ${file.name}` : `업로드 중: ${file.name}`
+        );
+
+        const ticketRes = await fetch('/api/files', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password,
+            sessionId: session.id,
+            fileName: file.name,
+            fileSize: file.size,
+          }),
+        });
+        const ticket = await ticketRes.json();
+        if (!ticketRes.ok) {
+          alert(`${file.name}: ${ticket.error || '업로드 준비에 실패했습니다.'}`);
+          continue;
+        }
+
+        const { error: uploadError } = await supabase.storage
+          .from(FILE_BUCKET)
+          .uploadToSignedUrl(ticket.path, ticket.token, file, {
+            contentType: file.type || 'application/octet-stream',
+          });
+        if (uploadError) {
+          alert(`${file.name}: 업로드에 실패했습니다. (${uploadError.message})`);
+          continue;
+        }
+
+        const msgRes = await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: session.id,
+            senderName: '강사',
+            content: '',
+            isTeacher: true,
+            password,
+            file: { path: ticket.path, name: file.name, size: file.size },
+          }),
+        });
+        if (!msgRes.ok) {
+          const data = await msgRes.json().catch(() => ({}));
+          alert(`${file.name}: ${data.error || '파일 메시지 발송에 실패했습니다.'}`);
+          continue;
+        }
+      }
+      fetchMessages(session.id);
+      notifyLocalBroadcast('NEW_MESSAGE');
+      requestAnimationFrame(scrollFeedToBottom);
+    } catch (e) {
+      console.error(e);
+      alert('파일 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setUploadStatus('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -432,6 +512,27 @@ export default function AdminPage() {
               {/* 공지 발송 입력창 */}
               <form onSubmit={handleSendTeacherMessage} className="flex gap-2">
                 <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleUploadFiles(e.target.files)}
+                />
+                <button
+                  type="button"
+                  disabled={Boolean(uploadStatus)}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-3 bg-white hover:bg-slate-50 disabled:opacity-60 text-slate-600 border border-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shrink-0"
+                  title="파일 올리기 (최대 50MB)"
+                >
+                  {uploadStatus ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">파일</span>
+                </button>
+                <input
                   type="text"
                   placeholder="메시지를 입력하세요"
                   value={teacherMsg}
@@ -446,6 +547,9 @@ export default function AdminPage() {
                   <span>발송</span>
                 </button>
               </form>
+              {uploadStatus && (
+                <p className="text-xs text-indigo-600 font-medium -mt-2 truncate">{uploadStatus}</p>
+              )}
 
               {/* 대형 메시지 피드 (높이 600px, 와이드 뷰) */}
               <div
@@ -495,10 +599,18 @@ export default function AdminPage() {
                         </button>
                       </div>
 
+                      {m.filePath && m.fileName && (
+                        <div className="max-w-md">
+                          <FileCard filePath={m.filePath} fileName={m.fileName} fileSize={m.fileSize} />
+                        </div>
+                      )}
+
                       {/* 메시지 내용 (전문 줄바꿈 표시) */}
-                      <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words pl-0.5">
-                        {m.content}
-                      </p>
+                      {m.content && (
+                        <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words pl-0.5">
+                          {m.content}
+                        </p>
+                      )}
                     </div>
                   ))
                 )}

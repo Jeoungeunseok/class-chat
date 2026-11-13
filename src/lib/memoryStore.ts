@@ -1,4 +1,4 @@
-import { Session, ChatMessage } from '@/types/chat';
+import { Session, ChatMessage, MessageFile } from '@/types/chat';
 
 interface GlobalStore {
   currentSession: Session | null;
@@ -80,7 +80,8 @@ export function addMessage(
   sessionId: string,
   senderName: string,
   content: string,
-  isTeacher: boolean = false
+  isTeacher: boolean = false,
+  file?: MessageFile
 ): ChatMessage {
   const msg: ChatMessage = {
     id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -90,6 +91,7 @@ export function addMessage(
     isTeacher,
     isDeleted: false,
     createdAt: new Date().toISOString(),
+    ...(file ? { filePath: file.path, fileName: file.name, fileSize: file.size } : {}),
   };
 
   store.messages.push(msg);

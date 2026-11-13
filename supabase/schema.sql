@@ -37,3 +37,15 @@ CREATE POLICY "Public access for messages" ON messages FOR ALL USING (true) WITH
 -- 4. 실시간 웹소켓 구독 (Realtime) 활성화
 ALTER PUBLICATION supabase_realtime ADD TABLE sessions;
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+
+-- 5. 강사 자료 파일 첨부 (파일 업로드/다운로드 기능)
+--    이미 1~4번을 실행한 프로젝트라면 이 5번 부분만 SQL Editor에서 실행하면 됩니다.
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS file_path TEXT;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS file_name TEXT;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS file_size BIGINT;
+
+-- 파일 저장소 버킷: 누구나 다운로드 가능(public), 업로드·삭제는 서버의 service role 키로만 가능
+-- (서버가 처음 업로드할 때 자동으로 만들기도 하지만, 미리 만들어 두면 확실합니다)
+INSERT INTO storage.buckets (id, name, public, file_size_limit)
+VALUES ('class-files', 'class-files', true, 52428800)
+ON CONFLICT (id) DO NOTHING;
